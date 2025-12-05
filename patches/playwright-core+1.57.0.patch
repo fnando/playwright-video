@@ -1,0 +1,34 @@
+diff --git a/node_modules/playwright-core/lib/server/chromium/videoRecorder.js b/node_modules/playwright-core/lib/server/chromium/videoRecorder.js
+index e1969ae..da37e73 100644
+--- a/node_modules/playwright-core/lib/server/chromium/videoRecorder.js
++++ b/node_modules/playwright-core/lib/server/chromium/videoRecorder.js
+@@ -39,17 +39,24 @@ class VideoRecorder {
+     page.on(import_page.Page.Events.ScreencastFrame, (frame) => this.writeFrame(frame.buffer, frame.frameSwapWallTime / 1e3));
+   }
+   static async launch(page, ffmpegPath, options) {
+-    if (!options.outputFile.endsWith(".webm"))
+-      throw new Error("File must have .webm extension");
+-    const recorder = new VideoRecorder(page, ffmpegPath);
++    if (!options.outputFile.endsWith(".webm") && !options.outputFile.endsWith(".mp4"))
++      throw new Error("File must have .webm or .mp4 extension");
++    // Use system ffmpeg if available for better codec support
++    const systemFfmpeg = process.env.PLAYWRIGHT_FFMPEG_PATH || "ffmpeg";
++    const recorder = new VideoRecorder(page, systemFfmpeg);
+     await recorder._launch(options);
+     return recorder;
+   }
+   async _launch(options) {
+     const w = options.width;
+     const h = options.height;
+-    const args = `-loglevel error -f image2pipe -avioflags direct -fpsprobesize 0 -probesize 32 -analyzeduration 0 -c:v mjpeg -i pipe:0 -y -an -r ${fps} -c:v vp8 -qmin 0 -qmax 50 -crf 8 -deadline realtime -speed 8 -b:v 1M -threads 1 -vf pad=${w}:${h}:0:0:gray,crop=${w}:${h}:0:0`.split(" ");
+-    args.push(options.outputFile);
++    const isMP4 = (process.env.PLAYWRIGHT_VIDEO_FORMAT || "").endsWith(".mp4");
++    const codec = isMP4 ? "libx264" : "libvpx-vp9";
++    const codecArgs = isMP4 ? "-crf 15 -pix_fmt yuv420p" : "-crf 30 -b:v 0 -deadline good -cpu-used 2 -row-mt 1";
++    const outputFile = isMP4 ? options.outputFile.replace(/\.webm$/, ".mp4") : options.outputFile;
++    options.outputFile = outputFile; // Update the options so page.video().path() returns correct path
++    const args = `-loglevel error -f image2pipe -avioflags direct -fpsprobesize 0 -probesize 32 -analyzeduration 0 -c:v mjpeg -i pipe:0 -y -an -r ${fps} -c:v ${codec} ${codecArgs} -b:v 3M -vf pad=${w}:${h}:0:0:gray,crop=${w}:${h}:0:0`.split(" ");
++    args.push(outputFile);
+     const { launchedProcess, gracefullyClose } = await (0, import_processLauncher.launchProcess)({
+       command: this._ffmpegPath,
+       args,

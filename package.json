@@ -1,0 +1,30 @@
+{
+  "name": "@fnando/playwright-video",
+  "author": {
+    "email": "me@fnando.com",
+    "name": "Nando Vieira",
+    "url": "https://fnando.com"
+  },
+  "description": "Run Playwright scripts and generate videos",
+  "version": "0.0.0",
+  "license": "MIT",
+  "bin": {
+    "playwright-video": "bin/playwright-video.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "patches"
+  ],
+  "devDependencies": {
+    "@types/node": "^24.10.1"
+  },
+  "scripts": {
+    "postinstall": "patch-package"
+  },
+  "dependencies": {
+    "commander": "^14.0.2",
+    "patch-package": "^8.0.1",
+    "playwright": "1.57.0"
+  }
+}
