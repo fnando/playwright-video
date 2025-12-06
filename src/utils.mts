@@ -1,10 +1,12 @@
+import type { Locator, Page } from "playwright";
+
 /**
  * Built utilities bound to `page`.
  *
  * @param  {import("playwright").Page} page - The Playwright page instance
  * @return {object} Utility functions for interacting with the page
  */
-export function utils(page) {
+export function utils(page: Page) {
   let currentMouseX = 0,
     currentMouseY = 0;
 
@@ -13,13 +15,22 @@ export function utils(page) {
    * @param {object} options - Options with either selector or text
    * @returns {import("playwright").Locator}
    */
-  function optionsToLocator({ selector = null, text = null }) {
-    if (!selector && !text) {
-      throw new Error("Must provide either selector or text");
+  function optionsToLocator({
+    selector,
+    text,
+  }: {
+    selector: string | null | undefined;
+    text: string | null | undefined;
+  }): Locator {
+    if (selector) {
+      return page.locator(selector);
     }
-    return text
-      ? page.getByText(text, { exact: true }).first()
-      : page.locator(selector);
+
+    if (text) {
+      return page.getByText(text, { exact: true }).first();
+    }
+
+    throw new Error("Must provide either selector or text");
   }
 
   /**
@@ -27,7 +38,7 @@ export function utils(page) {
    * @param  {number} duration Duration in milliseconds
    * @return {Promise<void>}
    */
-  function sleep(duration) {
+  function sleep(duration: number) {
     return new Promise((resolve) => {
       setTimeout(resolve, duration);
     });
@@ -41,7 +52,10 @@ export function utils(page) {
    * @param  {Number}   timeout  Timeout in milliseconds (default: 2000ms)
    * @return {Promise<void>}
    */
-  async function waitUntilSatisfied(callback, timeout = 2000) {
+  async function waitUntilSatisfied(
+    callback: () => Promise<boolean>,
+    timeout = 2000,
+  ) {
     while (timeout > 0) {
       const result = await callback();
 
@@ -61,7 +75,7 @@ export function utils(page) {
    *
    * @param {string} type - The cursor type ('default' or 'hand')
    */
-  function setCursor(type) {
+  function setCursor(type: "default" | "hand") {
     page.evaluate(`
       window.__cursor.className = 'playwright-cursor ${type}';
     `);
@@ -75,7 +89,11 @@ export function utils(page) {
    * @param  {number} options.speed Speed of mouse movement (pixels per step).
    * @return {Promise<void>}
    */
-  async function moveMouseTo(x, y, { speed = 10 } = {}) {
+  async function moveMouseTo(
+    x: number,
+    y: number,
+    { speed }: { speed: number } = { speed: 10 },
+  ) {
     setCursor("default");
     let mouseX = currentMouseX;
     let mouseY = currentMouseY;
@@ -118,11 +136,29 @@ export function utils(page) {
    * @return {Promise<void>}
    */
   async function scrollToElement({
-    selector = null,
-    text = null,
-    locator = null,
+    selector,
+    text,
+    locator,
     duration = 500,
-  } = {}) {
+  }:
+    | {
+        selector: string;
+        duration?: number;
+        text?: null;
+        locator?: null;
+      }
+    | {
+        text: string;
+        duration?: number;
+        locator?: null;
+        selector?: null;
+      }
+    | {
+        locator: Locator;
+        duration?: number;
+        text?: null;
+        selector?: null;
+      }): Promise<void> {
     const element = locator || optionsToLocator({ selector, text });
 
     const box = await element.boundingBox();
@@ -166,8 +202,8 @@ export function utils(page) {
         const startScroll = window.scrollY;
         const startTime = performance.now();
 
-        return new Promise((resolve) => {
-          function animate(currentTime) {
+        return new Promise<void>((resolve) => {
+          function animate(currentTime: number) {
             const elapsed = currentTime - startTime;
             const progress = Math.min(elapsed / dur, 1);
 
@@ -255,10 +291,14 @@ export function utils(page) {
    */
   async function clickLink({
     delay,
-    mouseSpeed = 10,
-    scrollDuration = 500,
+    mouseSpeed,
+    scrollDuration,
     ...options
-  } = {}) {
+  }: {
+    delay?: number;
+    mouseSpeed?: number;
+    scrollDuration?: number;
+  } & Parameters<typeof optionsToLocator>[0]) {
     // Create locator once and reuse it
     const locator = optionsToLocator(options);
 
@@ -284,7 +324,7 @@ export function utils(page) {
       elementBottom < viewportTop || elementTop > viewportBottom;
 
     if (isOffScreen) {
-      await scrollToElement({ locator, duration: scrollDuration });
+      await scrollToElement({ locator, duration: scrollDuration || 500 });
       await sleep(100);
     }
 
@@ -298,7 +338,7 @@ export function utils(page) {
     const centerY = box.y + box.height / 2;
 
     setCursor("default");
-    await moveMouseTo(centerX, centerY, { speed: mouseSpeed });
+    await moveMouseTo(centerX, centerY, { speed: mouseSpeed || 10 });
     setCursor("hand");
     await sleep(delay || 500);
     click();
@@ -313,7 +353,15 @@ export function utils(page) {
    *                                   keystrokes).
    * @return {Promise<void>}
    */
-  async function fillIn({ selector, text, delay = 100 } = {}) {
+  async function fillIn({
+    selector,
+    text,
+    delay = 100,
+  }: {
+    selector: string;
+    text: string;
+    delay: number;
+  }) {
     await page.locator(selector).pressSequentially(text, { delay });
   }
 
@@ -324,17 +372,20 @@ export function utils(page) {
    * @param  {Object} options The same options as in `page.goto(url, options)`.
    * @return {Promise<void>}
    */
-  async function visit(url, options) {
+  async function visit(
+    url: string,
+    options: Parameters<typeof page.goto>[1] = {},
+  ) {
     await page.goto(url, { waitUntil: "load", ...options });
   }
 
   /**
    * Check if an element exists on the page.
    *
-   * @param  {text} selector The selector of the element to check.
+   * @param  {string} selector The selector of the element to check.
    * @return {Promise<bool>}
    */
-  async function exists(selector) {
+  async function exists(selector: string): Promise<boolean> {
     return (await page.locator(selector).first().count()) > 0;
   }
 

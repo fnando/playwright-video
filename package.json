@@ -13,11 +13,13 @@
   },
   "files": [
     "bin",
-    "src",
+    "dist",
     "patches"
   ],
+  "typings": "dist/index.d.mts",
   "devDependencies": {
-    "@types/node": "^24.10.1"
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3"
   },
   "scripts": {
     "postinstall": "patch-package"

@@ -9,3 +9,4 @@ node_modules/
 *.mp4
 *.png
 *.tgz
+/dist

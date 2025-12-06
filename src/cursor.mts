@@ -1,8 +1,11 @@
+import type { Page } from "playwright";
+
 /**
- * [cursorSetup description]
- * @param  {Page} page The page instance.
+ * Set up cursor emulation on headless chrome.
+ *
+ * @param {Page} page The page instance.
  */
-export async function cursorSetup(page) {
+export async function cursorSetup(page: Page) {
   const source = `
     const style = document.createElement("style");
     style.textContent = \`
