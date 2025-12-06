@@ -1,5 +1,18 @@
+diff --git a/node_modules/playwright-core/lib/server/chromium/crPage.js b/node_modules/playwright-core/lib/server/chromium/crPage.js
+index 637f2dc..4ec9410 100644
+--- a/node_modules/playwright-core/lib/server/chromium/crPage.js
++++ b/node_modules/playwright-core/lib/server/chromium/crPage.js
+@@ -744,7 +744,7 @@ class FrameSession {
+   }
+   async _createVideoRecorder(screencastId, options) {
+     (0, import_assert.assert)(!this._screencastId);
+-    const ffmpegPath = import_registry.registry.findExecutable("ffmpeg").executablePathOrDie(this._page.browserContext._browser.sdkLanguage());
++    const ffmpegPath = process.env.FFMPEG_BIN || import_registry.registry.findExecutable("ffmpeg").executablePathOrDie(this._page.browserContext._browser.sdkLanguage());
+     this._videoRecorder = await import_videoRecorder.VideoRecorder.launch(this._crPage._page, ffmpegPath, options);
+     this._screencastId = screencastId;
+   }
 diff --git a/node_modules/playwright-core/lib/server/chromium/videoRecorder.js b/node_modules/playwright-core/lib/server/chromium/videoRecorder.js
-index e1969ae..da37e73 100644
+index e1969ae..d3b23b5 100644
 --- a/node_modules/playwright-core/lib/server/chromium/videoRecorder.js
 +++ b/node_modules/playwright-core/lib/server/chromium/videoRecorder.js
 @@ -39,17 +39,24 @@ class VideoRecorder {
@@ -12,7 +25,7 @@ index e1969ae..da37e73 100644
 +    if (!options.outputFile.endsWith(".webm") && !options.outputFile.endsWith(".mp4"))
 +      throw new Error("File must have .webm or .mp4 extension");
 +    // Use system ffmpeg if available for better codec support
-+    const systemFfmpeg = process.env.PLAYWRIGHT_FFMPEG_PATH || "ffmpeg";
++    const systemFfmpeg = process.env.FFMPEG_BIN || "ffmpeg";
 +    const recorder = new VideoRecorder(page, systemFfmpeg);
      await recorder._launch(options);
      return recorder;

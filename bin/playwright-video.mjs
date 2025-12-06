@@ -55,7 +55,7 @@ program
     const browser = await chromium.launch({
       headless: true,
       executablePath:
-        options.executablePath || process.env.CHROME_BIN || undefined,
+        process.env.CHROME_BIN || options.executablePath || undefined,
       args: ["--disable-dev-shm-usage", "--no-sandbox"],
     });
 

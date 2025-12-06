@@ -112,6 +112,12 @@ Check if an element exists on the page.
 
 Returns: `Promise<boolean>`
 
+## Notes
+
+- This package patches Playwright to enable .mp4 support,
+- This package patches Playwright to enable `FFMPEG_BIN` and `CHROME_BIN`
+  environment variables.
+
 ## Maintainer
 
 - Nando Vieira - https://nandovieira.com
