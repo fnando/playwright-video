@@ -6,7 +6,7 @@
     "url": "https://fnando.com"
   },
   "description": "Run Playwright scripts and generate videos",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "license": "MIT",
   "bin": {
     "playwright-video": "bin/playwright-video.mjs"
