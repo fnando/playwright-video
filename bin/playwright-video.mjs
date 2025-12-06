@@ -4,6 +4,7 @@ import { Command } from "commander";
 import fs from "node:fs";
 import url from "node:url";
 import path from "node:path";
+import process from "node:process";
 import os from "node:os";
 import { chromium } from "playwright";
 
@@ -34,6 +35,10 @@ program
   )
   .option("--state-path <path>", "Persist state like local storage and cookies")
   .option("--color-scheme <scheme>", "Set the browser color scheme", "dark")
+  .option(
+    "--chrome-path <path>",
+    "Set chrome bin path. Can also be set through CHROME_BIN environment variable",
+  )
   .action(async (scriptPath, options) => {
     const module = await import(path.resolve(scriptPath));
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "playwright-video-"));
@@ -47,7 +52,13 @@ program
     const storageState =
       statePath && fs.existsSync(statePath) ? statePath : undefined;
 
-    const browser = await chromium.launch({ headless: true });
+    const browser = await chromium.launch({
+      headless: true,
+      executablePath:
+        options.executablePath || process.env.CHROME_BIN || undefined,
+      args: ["--disable-dev-shm-usage", "--no-sandbox"],
+    });
+
     const context = await browser.newContext({
       storageState,
       screen: { width: screenWidth, height: screenHeight },
@@ -56,6 +67,7 @@ program
       recordVideo: { dir, size: { width, height } },
       deviceScaleFactor: 2,
     });
+
     const page = await context.newPage();
 
     page.on("load", imageSetup);
