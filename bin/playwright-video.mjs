@@ -81,7 +81,8 @@ program
     }
 
     await browser.close();
-    fs.renameSync(videoPath, options.outputPath);
+    fs.copyFileSync(videoPath, options.outputPath);
+    fs.unlinkSync(videoPath);
     fs.rmdirSync(dir);
   });
 
