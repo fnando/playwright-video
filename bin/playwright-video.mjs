@@ -80,6 +80,7 @@ program
       await context.storageState({ path: statePath });
     }
 
+    await context.close();
     await browser.close();
     fs.copyFileSync(videoPath, options.outputPath);
     fs.unlinkSync(videoPath);
