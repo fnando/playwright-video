@@ -20,6 +20,9 @@ playwright-video export path/to/your/script.mjs \
 Your script must export a `run(options)` function. Here's an example:
 
 ```javascript
+/**
+ * @param  {import("@fnando/playwright-video").Utils} options Utilities
+ */
 export async function run({ visit, sleep, clickLink }) {
   await visit("https://nandovieira.com");
   await sleep(1000);

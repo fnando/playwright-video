@@ -6,7 +6,7 @@
     "url": "https://fnando.com"
   },
   "description": "Run Playwright scripts and generate videos",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "license": "MIT",
   "bin": {
     "playwright-video": "bin/playwright-video.mjs"
@@ -16,6 +16,11 @@
     "dist",
     "patches"
   ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts"
+    }
+  },
   "typings": "dist/index.d.mts",
   "devDependencies": {
     "@types/node": "^24.10.1",
