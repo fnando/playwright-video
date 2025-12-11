@@ -17,6 +17,18 @@ playwright-video export path/to/your/script.mjs \
   --color-scheme dark
 ```
 
+You can also provide additional arguments to Chrome via `--`.
+
+```bash
+playwright-video export path/to/your/script.mjs \
+  --output-path path/to/output/video.mp4 \
+  --state-path path/to/state.json \
+  --color-scheme dark \
+  -- --autoplay-policy=no-user-gesture-required \
+     --disable-popup-blocking \
+     --disable-gpu
+```
+
 Your script must export a `run(options)` function. Here's an example:
 
 ```javascript
