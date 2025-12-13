@@ -1,14 +1,32 @@
 import type { Locator, Page } from "playwright";
 
-/**
- * Built utilities bound to `page`.
- *
- * @param  {import("playwright").Page} page - The Playwright page instance
- * @return {object} Utility functions for interacting with the page
- */
-export function utils(page: Page) {
+export type Mark = {
+  type: "pause" | "resume";
+  timestamp: number;
+};
+
+// Built utilities bound to `page`.
+export function utils(page: Page, marks: Mark[]) {
   let currentMouseX = 0,
     currentMouseY = 0;
+
+  /**
+   * Pause the execution by adding a pause mark.
+   */
+  function pause() {
+    if (marks[marks.length - 1]?.type !== "pause") {
+      marks.push({ type: "pause", timestamp: Date.now() });
+    }
+  }
+
+  /**
+   * Resume the execution by adding a resume mark.
+   */
+  function resume() {
+    if (marks[marks.length - 1]?.type !== "resume") {
+      marks.push({ type: "resume", timestamp: Date.now() });
+    }
+  }
 
   /**
    * Convert selector/text options to a Playwright locator
@@ -390,12 +408,14 @@ export function utils(page: Page) {
   }
 
   return {
-    page,
     clickLink,
     exists,
     fillIn,
     moveMouseTo,
     moveMouseToElement,
+    page,
+    pause,
+    resume,
     scrollToElement,
     setCursor,
     sleep,

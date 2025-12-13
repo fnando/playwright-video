@@ -35,11 +35,14 @@ Your script must export a `run(options)` function. Here's an example:
 /**
  * @param  {import("@fnando/playwright-video").Utils} options Utilities
  */
-export async function run({ visit, sleep, clickLink }) {
+export async function run({ visit, sleep, clickLink, pause, resume }) {
   await visit("https://nandovieira.com");
+
+  resume(); // Start recording
   await sleep(1000);
   await clickLink({ text: "Using PostgreSQL and jsonb with Ruby on Rails" });
   await sleep(5000);
+  pause(); // Stop recording
 }
 ```
 
@@ -126,6 +129,52 @@ Check if an element exists on the page.
 - `selector` (string): The selector of the element to check
 
 Returns: `Promise<boolean>`
+
+##### `pause()`
+
+Pause video recording. Any actions performed after calling `pause()` will not be
+included in the final video until `resume()` is called.
+
+##### `resume()`
+
+Resume video recording. Actions performed after calling `resume()` will be
+included in the final video until `pause()` is called again.
+
+#### Video Segmentation
+
+By default, recording starts in a paused state. Use `resume()` and `pause()` to
+control which parts of your script are included in the final video. The video
+will only include segments between `resume()` and `pause()` calls.
+
+If you have multiple pause/resume segments, they will be seamlessly concatenated
+using ffmpeg. If you don't use pause/resume or only have a single segment, the
+full video will be saved without processing.
+
+Example:
+
+```javascript
+export async function run({ visit, sleep, pause, resume, clickLink }) {
+  await visit("https://example.com");
+
+  // Start recording
+  resume();
+  await clickLink({ text: "Login" });
+  await sleep(1000);
+  pause();
+
+  // This part won't be in the video
+  await sleep(5000);
+
+  // Resume recording
+  resume();
+  await clickLink({ text: "Dashboard" });
+  await sleep(2000);
+  pause();
+}
+```
+
+The final video will only contain the two segments where recording was active,
+skipping the 5-second wait in between.
 
 ## Notes
 

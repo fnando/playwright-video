@@ -5,6 +5,7 @@ import path from "path";
 import process from "process";
 import os from "os";
 import { chromium, type BrowserContext, type Browser } from "playwright";
+import { spawnSync } from "child_process";
 
 const bareIndex = process.argv.indexOf("--");
 const hasBare = bareIndex >= 0;
@@ -13,7 +14,7 @@ const chromeArgs = hasBare ? process.argv.slice(bareIndex + 1) : [];
 
 import { cursorSetup } from "./cursor.mjs";
 import { imageSetup } from "./images.mjs";
-import { utils } from "./utils.mjs";
+import { utils, type Mark } from "./utils.mjs";
 
 type Options = {
   outputPath: string;
@@ -22,6 +23,86 @@ type Options = {
   colorScheme?: "dark" | "light";
   executablePath?: string;
 };
+
+type Segment = {
+  start: number;
+  end: number;
+};
+
+/**
+ * Convert pause/resume marks to time segments that should be included in the video.
+ * Segments represent time ranges from resume to pause.
+ */
+function marksToSegments(marks: Mark[], startedAt: number): Segment[] {
+  const segments: Segment[] = [];
+  let resumeTime: number | null = null;
+
+  for (const mark of marks) {
+    if (mark.type === "resume") {
+      resumeTime = mark.timestamp;
+    } else if (mark.type === "pause" && resumeTime !== null) {
+      segments.push({
+        start: (resumeTime - startedAt) / 1000,
+        end: (mark.timestamp - startedAt) / 1000,
+      });
+      resumeTime = null;
+    }
+  }
+
+  return segments;
+}
+
+/**
+ * Build ffmpeg select filter expression from segments.
+ * Returns expression like: between(t,0,5)+between(t,8,12)
+ */
+function buildSelectFilter(segments: Segment[]): string {
+  if (segments.length === 0) {
+    return "between(t,0,0)";
+  }
+  return segments.map((s) => `between(t,${s.start},${s.end})`).join("+");
+}
+
+/**
+ * Process video with ffmpeg to include only the specified segments.
+ */
+function processVideoSegments(
+  inputPath: string,
+  outputPath: string,
+  segments: Segment[],
+): void {
+  if (segments.length === 0) {
+    return;
+  }
+
+  const selectExpr = buildSelectFilter(segments);
+
+  const args = [
+    "-v",
+    "error",
+    "-i",
+    inputPath,
+    "-vf",
+    `select='${selectExpr}',setpts=N/FRAME_RATE/TB`,
+    "-af",
+    `aselect='${selectExpr}',asetpts=N/SR/TB`,
+    "-y",
+    outputPath,
+  ];
+
+  const result = spawnSync("ffmpeg", args, {
+    stdio: "inherit",
+    encoding: "utf-8",
+  });
+
+  if (result.error) {
+    throw new Error(`Failed to execute ffmpeg: ${result.error.message}`);
+  }
+
+  if (result.status !== 0) {
+    throw new Error(`ffmpeg exited with code ${result.status}`);
+  }
+}
 
 export function cli() {
   const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
@@ -128,12 +209,14 @@ export function cli() {
         context = await browser.newContext(contextOptions);
       }
 
+      const startedAt = Date.now();
+      const marks: Mark[] = [{ type: "pause", timestamp: startedAt }];
       const page = await context.newPage();
 
       page.on("load", imageSetup);
       page.on("load", cursorSetup);
 
-      await module.run(utils(page));
+      await module.run(utils(page, marks));
       const videoPath = await page.video()?.path();
 
       if (statePath) {
@@ -147,7 +230,19 @@ export function cli() {
       }
 
       if (videoPath) {
-        fs.copyFileSync(videoPath, options.outputPath);
+        // Add final pause mark if the last mark is a resume
+        if (marks[marks.length - 1]?.type === "resume") {
+          marks.push({ type: "pause", timestamp: Date.now() });
+        }
+
+        const segments = marksToSegments(marks, startedAt);
+
+        if (marks.length > 2) {
+          processVideoSegments(videoPath, options.outputPath, segments);
+        } else {
+          fs.copyFileSync(videoPath, options.outputPath);
+        }
+
         fs.unlinkSync(videoPath);
       }
 
